@@ -15,6 +15,10 @@ public class OnlinePlayer : NetworkBehaviour
     [SerializeField]
     private Transform _eyes;
 
+    [Header("Aiming")]
+    [SerializeField]
+    private Transform _aimPivot; // NUEVO: pivote que rota en X (pitch), padre del arma/spawn point
+
     [Header("Shooting")]
     [SerializeField]
     private Bullet bulletPrefab;
@@ -29,10 +33,15 @@ public class OnlinePlayer : NetworkBehaviour
         private set { }
     }
 
+    [Networked]
+    public float AimPitch { get; set; } // NUEVO: pitch replicado a todos los clientes
+
     private bool _isShootPressed;
     private Vector2 _moveInput;
+    private float _pendingPitch; // NUEVO: último pitch leído localmente
 
     private Rigidbody _rb;
+    private CameraMovement _cameraMovement; // NUEVO
 
     public override void Spawned()
     {
@@ -43,17 +52,19 @@ public class OnlinePlayer : NetworkBehaviour
         );
 
         _rb = GetComponent<Rigidbody>();
+        _rb.constraints = RigidbodyConstraints.FreezeRotation;
 
         if(HasStateAuthority)
         {
             Score = 0;
 
-            Camera.main
-                .GetComponent<CameraMovement>()
-                .SetTarget(
-                    transform,
-                    _eyes
-                );
+            var mainCam = Camera.main;
+            _cameraMovement = mainCam.GetComponent<CameraMovement>();
+
+            _cameraMovement.SetTarget(
+                transform,
+                _eyes
+            );
         }
 
         GameManager.Instance?.AddToList(this);
@@ -98,6 +109,11 @@ public class OnlinePlayer : NetworkBehaviour
             _isShootPressed = true;
         }
 
+        if(_cameraMovement != null)
+        {
+            _pendingPitch = _cameraMovement.Pitch; // NUEVO
+        }
+
         if(_playerView != null)
         {
             _playerView.SetMovementParameter(
@@ -131,13 +147,27 @@ public class OnlinePlayer : NetworkBehaviour
 
     public override void FixedUpdateNetwork()
     {
-        if(!HasStateAuthority ||
-            !_isShootPressed)
+        if(!HasStateAuthority)
             return;
 
-        _isShootPressed = false;
+        AimPitch = _pendingPitch; // NUEVO: se replica a todos los clientes
 
-        SpawnShot();
+        if(_isShootPressed)
+        {
+            _isShootPressed = false;
+            SpawnShot();
+        }
+    }
+
+    public override void Render()
+    {
+        // NUEVO: aplica el pitch al pivote en TODOS los clientes,
+        // para que el torso/arma se vea inclinado también en remotos.
+        if(_aimPivot != null)
+        {
+            _aimPivot.localRotation =
+                Quaternion.Euler(AimPitch, 0f, 0f);
+        }
     }
 
     public void AddScore(int points)
@@ -167,7 +197,7 @@ public class OnlinePlayer : NetworkBehaviour
         Runner.Spawn(
             bulletPrefab,
             bulletSpawnPoint.position,
-            bulletSpawnPoint.rotation,
+            bulletSpawnPoint.rotation, // ya incluye el pitch heredado del AimPivot
             shooter,
             (runner, networkObject) =>
             {
@@ -186,6 +216,7 @@ public class OnlinePlayer : NetworkBehaviour
             _playerView.PlayShoot();
         }
     }
+
     private void DebugScore()
     {
         Debug.Log(
