@@ -11,6 +11,8 @@ public class CameraMovement : MonoBehaviour
     private Transform _player;
     private Transform _eyes;
 
+    public float Pitch => _pitch;
+
     private float _pitch;
 
     public void SetTarget(
