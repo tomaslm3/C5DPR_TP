@@ -1,7 +1,7 @@
 using UnityEngine;
 using Fusion;
 
-[RequireComponent(typeof(Animator))]
+[RequireComponent(typeof(NetworkMecanimAnimator))]
 public class ArcheryTarget : Target
 {
     private static readonly int FallTrigger = Animator.StringToHash("Fall");
@@ -10,11 +10,11 @@ public class ArcheryTarget : Target
     [SerializeField, Min(0f)]
     private float _despawnDelay = 3f;
 
-    private Animator _animator;
+    private NetworkMecanimAnimator _animator;
 
     private void Awake()
     {
-        _animator = GetComponent<Animator>();
+        _animator = GetComponent<NetworkMecanimAnimator>();
     }
 
     protected override void OnDestroyed()

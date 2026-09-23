@@ -1,6 +1,7 @@
 using Fusion;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityPipeline.Microsoft.CodeAnalysis.CSharp.Syntax;
 
 public class GameManager : NetworkBehaviour
 {
@@ -19,7 +20,10 @@ public class GameManager : NetworkBehaviour
     public IReadOnlyList<PlayerRef> Players => _players;
 
     [Networked]
-    private NetworkBool GameStarted { get; set; }
+    public NetworkBool GameStarted { get; set; }
+
+    public int ConnectedPlayers => _players.Count;
+    public int RequiredPlayers => 2;
 
     [Networked]
     public TickTimer GameTimer { get; private set; }
