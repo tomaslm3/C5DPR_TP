@@ -1,0 +1,28 @@
+using UnityEngine;
+using Fusion;
+
+[RequireComponent(typeof(Animator))]
+public class ArcheryTarget : Target
+{
+    private static readonly int FallTrigger = Animator.StringToHash("Fall");
+
+    [Header("Despawn")]
+    [SerializeField, Min(0f)]
+    private float _despawnDelay = 3f;
+
+    private Animator _animator;
+
+    private void Awake()
+    {
+        _animator = GetComponent<Animator>();
+    }
+
+    protected override void OnDestroyed()
+    {
+        base.OnDestroyed();
+
+        _animator.SetTrigger(FallTrigger);
+
+        DespawnAfter(_despawnDelay);
+    }
+}
