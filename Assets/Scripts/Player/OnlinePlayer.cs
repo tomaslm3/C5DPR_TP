@@ -17,7 +17,7 @@ public class OnlinePlayer : NetworkBehaviour
 
     [Header("Aiming")]
     [SerializeField]
-    private Transform _aimPivot; // NUEVO: pivote que rota en X (pitch), padre del arma/spawn point
+    private Transform _aimPivot;
 
     [Header("Shooting")]
     [SerializeField]
@@ -25,6 +25,31 @@ public class OnlinePlayer : NetworkBehaviour
 
     [SerializeField]
     private Transform bulletSpawnPoint;
+
+    [Header("Ammo")]
+    [SerializeField, Min(1)]
+    private int _magazineCapacity = 5;
+
+    [SerializeField, Min(1)]
+    private int _magazineCount = 3;
+
+    [Networked, Capacity(3)]
+    public NetworkArray<int> Magazines => default;
+
+    [Networked]
+    public int CurrentMagazineIndex { get; set; }
+
+    public int CurrentAmmo =>
+        Magazines[CurrentMagazineIndex];
+
+    public int MagazineCapacity =>
+        _magazineCapacity;
+
+    public int MagazineCount =>
+    _magazineCount;
+
+    public int GetMagazineAmmo(int index) =>
+        Magazines[index];
 
     [Networked, OnChangedRender(nameof(DebugScore))]
     public int Score
@@ -34,14 +59,18 @@ public class OnlinePlayer : NetworkBehaviour
     }
 
     [Networked]
-    public float AimPitch { get; set; } // NUEVO: pitch replicado a todos los clientes
+    public float AimPitch { get; set; }
 
     private bool _isShootPressed;
+    private bool _isReloadPressed;
+    private bool _isRefillPressed;
+    private bool _nearAmmoBox;
+
     private Vector2 _moveInput;
-    private float _pendingPitch; // NUEVO: último pitch leído localmente
+    private float _pendingPitch;
 
     private Rigidbody _rb;
-    private CameraMovement _cameraMovement; // NUEVO
+    private CameraMovement _cameraMovement;
 
     public override void Spawned()
     {
@@ -57,6 +86,13 @@ public class OnlinePlayer : NetworkBehaviour
         if(HasStateAuthority)
         {
             Score = 0;
+
+            for(int i = 0; i < _magazineCount; i++)
+            {
+                Magazines.Set(i, _magazineCapacity);
+            }
+
+            CurrentMagazineIndex = 0;
 
             var mainCam = Camera.main;
             _cameraMovement = mainCam.GetComponent<CameraMovement>();
@@ -95,6 +131,12 @@ public class OnlinePlayer : NetworkBehaviour
 
             if(Keyboard.current.wKey.isPressed)
                 _moveInput.y += 1f;
+
+            if(Keyboard.current.rKey.wasPressedThisFrame)
+                _isReloadPressed = true;
+
+            if(Keyboard.current.eKey.wasPressedThisFrame)
+                _isRefillPressed = true;
         }
 
         _moveInput =
@@ -111,7 +153,7 @@ public class OnlinePlayer : NetworkBehaviour
 
         if(_cameraMovement != null)
         {
-            _pendingPitch = _cameraMovement.Pitch; // NUEVO
+            _pendingPitch = _cameraMovement.Pitch;
         }
 
         if(_playerView != null)
@@ -150,7 +192,19 @@ public class OnlinePlayer : NetworkBehaviour
         if(!HasStateAuthority)
             return;
 
-        AimPitch = _pendingPitch; // NUEVO: se replica a todos los clientes
+        AimPitch = _pendingPitch;
+
+        if(_isReloadPressed)
+        {
+            _isReloadPressed = false;
+            TryReload();
+        }
+
+        if(_isRefillPressed)
+        {
+            _isRefillPressed = false;
+            TryRefillAmmo();
+        }
 
         if(_isShootPressed)
         {
@@ -161,8 +215,6 @@ public class OnlinePlayer : NetworkBehaviour
 
     public override void Render()
     {
-        // NUEVO: aplica el pitch al pivote en TODOS los clientes,
-        // para que el torso/arma se vea inclinado también en remotos.
         if(_aimPivot != null)
         {
             _aimPivot.localRotation =
@@ -178,6 +230,49 @@ public class OnlinePlayer : NetworkBehaviour
 
         Score += points;
     }
+    public void SetNearAmmoBox(bool isNear)
+    {
+        _nearAmmoBox = isNear;
+    }
+
+    private void TryReload()
+    {
+        for(int offset = 1; offset <= _magazineCount; offset++)
+        {
+            int candidateIndex =
+                (CurrentMagazineIndex + offset) % _magazineCount;
+
+            if(Magazines[candidateIndex] > 0)
+            {
+                CurrentMagazineIndex = candidateIndex;
+
+                Debug.Log(
+                    $"RELOAD | Cambiado a cargador {CurrentMagazineIndex} " +
+                    $"({Magazines[CurrentMagazineIndex]} balas)"
+                );
+
+                return;
+            }
+        }
+
+        Debug.Log("RELOAD | No hay cargadores con munición disponible.");
+    }
+
+    private void TryRefillAmmo()
+    {
+        if(!_nearAmmoBox)
+        {
+            Debug.Log("REFILL | No estás cerca de la caja de munición.");
+            return;
+        }
+
+        for(int i = 0; i < _magazineCount; i++)
+        {
+            Magazines.Set(i, _magazineCapacity);
+        }
+
+        Debug.Log("REFILL | Cargadores rellenados.");
+    }
 
     private void SpawnShot()
     {
@@ -192,12 +287,23 @@ public class OnlinePlayer : NetworkBehaviour
             return;
         }
 
+        if(Magazines[CurrentMagazineIndex] <= 0)
+        {
+            Debug.Log("SHOOT | Cargador vacío, presioná R para recargar.");
+            return;
+        }
+
+        Magazines.Set(
+            CurrentMagazineIndex,
+            Magazines[CurrentMagazineIndex] - 1
+        );
+
         PlayerRef shooter = Object.InputAuthority;
 
         Runner.Spawn(
             bulletPrefab,
             bulletSpawnPoint.position,
-            bulletSpawnPoint.rotation, // ya incluye el pitch heredado del AimPivot
+            bulletSpawnPoint.rotation,
             shooter,
             (runner, networkObject) =>
             {
