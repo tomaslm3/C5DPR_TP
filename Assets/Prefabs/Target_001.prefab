@@ -210,9 +210,9 @@ MonoBehaviour:
   Animator: {fileID: 8704854203780082565}
   ApplyTiming: 2
   SyncSettings: 79
-  StateHashes: 
-  TriggerHashes: 
-  TotalWords: 0
+  StateHashes: 0000000059c82efcb7aae6892b1a167c79406955
+  TriggerHashes: 000000003270625b
+  TotalWords: 1
 --- !u!95 &8704854203780082565
 Animator:
   serializedVersion: 7
@@ -223,7 +223,7 @@ Animator:
   m_GameObject: {fileID: 397088156198411051}
   m_Enabled: 1
   m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: bf9ea01c9360556468c014cdaff1623a, type: 2}
   m_CullingMode: 0
   m_UpdateMode: 0
   m_ApplyRootMotion: 0
