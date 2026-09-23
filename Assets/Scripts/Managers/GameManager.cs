@@ -210,8 +210,6 @@ public class GameManager : NetworkBehaviour
     [Rpc]
     private void RPC_ShowDraw()
     {
-        // Por ahora ambos muestran Win.
-        // Podemos crear una DrawImage después.
         if(_winImage != null)
         {
             _winImage.SetActive(true);

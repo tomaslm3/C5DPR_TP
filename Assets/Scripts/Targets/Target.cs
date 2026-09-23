@@ -132,14 +132,10 @@ public abstract class Target : NetworkBehaviour, IHitTarget
             CurrentLife = 0;
             _destroyed = true;
 
-            // Los puntos se otorgan inmediatamente.
             AwardPoints(
                 shooter,
                 Points
             );
-
-            // Cada Target decide qué hacer y
-            // cuándo desaparecer.
             OnDestroyed();
         }
     }

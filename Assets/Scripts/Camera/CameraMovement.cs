@@ -50,13 +50,11 @@ public class CameraMovement : MonoBehaviour
         float mouseY =
             mouseDelta.y * _sensitivity;
 
-        // Yaw.
         _player.Rotate(
             Vector3.up,
             mouseX
         );
 
-        // Pitch.
         _pitch -= mouseY;
 
         _pitch = Mathf.Clamp(

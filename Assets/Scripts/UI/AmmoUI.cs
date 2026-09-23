@@ -4,8 +4,8 @@ using UnityEngine;
 public class AmmoUI : MonoBehaviour
 {
     [Header("Texts")]
-    [SerializeField] private TMP_Text _currentAmmoText; // "3 / 5"
-    [SerializeField] private TMP_Text _magazinesText;    // "Cargadores: 2/3"
+    [SerializeField] private TMP_Text _currentAmmoText;
+    [SerializeField] private TMP_Text _magazinesText; 
 
     [Header("Visual feedback")]
     [SerializeField] private Color _normalColor = Color.white;

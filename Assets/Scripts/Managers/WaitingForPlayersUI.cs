@@ -3,7 +3,7 @@ using UnityEngine;
 
 public class WaitingForPlayersUI : MonoBehaviour
 {
-    [SerializeField] private GameObject _root; // panel o texto a mostrar u ocultar
+    [SerializeField] private GameObject _root;
     [SerializeField] private TMP_Text _statusText;
 
     private void Update()
